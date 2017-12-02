@@ -76,6 +76,8 @@ function update()
         end
     end
 
+    sendMessage("Starting update!")
+
     local n_processing = 0
     local processing = {}
 
@@ -129,7 +131,6 @@ end
 
 function main()
     if lfs.attributes("DONT_UPDATE") == nil then
-        sendMessage("Starting update!")
         print("Starting update!")
 
         fa.request("http://127.0.0.1/upload.cgi?WRITEPROTECT=ON")
