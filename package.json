@@ -1,0 +1,25 @@
+{
+  "name": "musicsync",
+  "version": "0.0.0",
+  "description": "Syncronize playlists",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ReneHollander/musicsync.git"
+  },
+  "author": "Rene Hollander",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ReneHollander/musicsync/issues"
+  },
+  "homepage": "https://github.com/ReneHollander/musicsync#readme",
+  "dependencies": {
+    "fs-extra": "^4.0.2",
+    "glob": "^7.1.2",
+    "glob-promise": "^3.3.0",
+    "koa": "^2.4.1",
+    "koa-router": "^7.3.0",
+    "lodash": "^4.17.4",
+    "replace-ext": "^1.0.0"
+  }
+}

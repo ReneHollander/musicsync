@@ -1,0 +1,6 @@
+.idea/
+data/
+node_modules/
+package-lock.json
+bin/youtube-dl.exe
+bin/youtube-dl

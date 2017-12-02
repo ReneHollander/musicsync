@@ -1,0 +1,3 @@
+# musicsync
+
+Syncronize music.
