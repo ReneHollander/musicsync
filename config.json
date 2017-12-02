@@ -1,0 +1,22 @@
+{
+  "port": 80,
+  "data_path": "data/",
+  "api": {
+    "user": "user",
+    "password": "1234"
+  },
+  "telegram": {
+    "token": "TELEGRAM_TOKEN_GOES_HERE",
+    "allowed_user": "TELEGRAM_USER_GOES_HERE"
+  },
+  "playlists": [
+    {
+      "name": "Playlist 1",
+      "url": "LINK_TO_PLAYLIST_ON_SOUNDLCOUD"
+    },
+    {
+      "name": "Playlist 2",
+      "url": "LINK_TO_PLAYLIST_ON_YOUTUBE"
+    }
+  ]
+}

@@ -1,8 +1,8 @@
 {
   "name": "musicsync",
-  "version": "0.0.0",
-  "description": "Syncronize playlists",
-  "main": "index.js",
+  "version": "0.0.1",
+  "description": "Syncronize playlists with a Toshiba FlashAir SD card.",
+  "main": "app.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ReneHollander/musicsync.git"
@@ -14,12 +14,18 @@
   },
   "homepage": "https://github.com/ReneHollander/musicsync#readme",
   "dependencies": {
+    "chokidar": "^1.7.0",
     "fs-extra": "^4.0.2",
     "glob": "^7.1.2",
     "glob-promise": "^3.3.0",
     "koa": "^2.4.1",
+    "koa-basic-auth": "^2.0.0",
+    "koa-bodyparser": "^4.2.0",
+    "koa-logger": "^3.1.0",
     "koa-router": "^7.3.0",
     "lodash": "^4.17.4",
-    "replace-ext": "^1.0.0"
+    "node-telegram-bot-api": "^0.29.0",
+    "replace-ext": "^1.0.0",
+    "request": "^2.83.0"
   }
 }
