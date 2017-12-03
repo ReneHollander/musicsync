@@ -13,8 +13,6 @@ const download = require('./lib/download');
 const app = new Koa();
 app.use(logger());
 
-const router = new Router();
-
 async function main() {
     let config = JSON.parse(await fs.readFile(path.resolve('config.json')));
 
@@ -43,7 +41,33 @@ async function main() {
         playlists[pl.name] = pl;
     }
 
-    router
+    function playlistName(playlist_name, ctx, next) {
+        let playlist = playlists[playlist_name];
+        if (!playlist) {
+            return ctx.status = 404;
+        }
+        ctx.playlist = playlist;
+        return next();
+    }
+
+    function trackName(track_name, ctx, next) {
+        let playlist = ctx.playlist;
+        if (playlist.status !== 'done') {
+            return ctx.status = 409;
+        }
+
+        let track = playlist.playlist.tracks.find(t => t.file_name === track_name);
+        if (!track) {
+            return ctx.status = 404;
+        }
+        ctx.track = track;
+        return next();
+    }
+
+    const securedRouter = new Router();
+    const openRouter = new Router();
+
+    securedRouter
         .get('/playlist/', (ctx) => {
             let resp = [];
             for (let key in playlists) {
@@ -52,14 +76,7 @@ async function main() {
             }
             ctx.body = resp;
         })
-        .param('playlist_name', (playlist_name, ctx, next) => {
-            let playlist = playlists[playlist_name];
-            if (!playlist) {
-                return ctx.status = 404;
-            }
-            ctx.playlist = playlist;
-            return next();
-        })
+        .param('playlist_name', playlistName)
         .post('/playlist/:playlist_name/update', (ctx) => {
             let playlist = ctx.playlist;
 
@@ -83,19 +100,7 @@ async function main() {
             }
             ctx.body = resp;
         })
-        .param('track_name', (track_name, ctx, next) => {
-            let playlist = ctx.playlist;
-            if (playlist.status !== 'done') {
-                return ctx.status = 409;
-            }
-
-            let track = playlist.playlist.tracks.find(t => t.file_name === track_name);
-            if (!track) {
-                return ctx.status = 404;
-            }
-            ctx.track = track;
-            return next();
-        })
+        .param('track_name', trackName)
         .get('/playlist/:playlist_name/track/:track_name/', async (ctx) => {
             let playlist = ctx.playlist;
             let track = ctx.track;
@@ -104,7 +109,18 @@ async function main() {
             ctx.body = fs.createReadStream(track.audio_path);
         });
 
-    router
+    openRouter
+        .param('playlist_name', playlistName)
+        .param('track_name', trackName)
+        .get('/playlist/:playlist_name/track/:track_name/', async (ctx) => {
+            let playlist = ctx.playlist;
+            let track = ctx.track;
+
+            ctx.type = path.extname(track.audio_path);
+            ctx.body = fs.createReadStream(track.audio_path);
+        });
+
+    securedRouter
         .post("/notify", async (ctx) => {
             if (config.telegram.chat_id) {
                 bot.sendMessage(config.telegram.chat_id, ctx.request.body).catch(err => console.log(err));
@@ -113,10 +129,12 @@ async function main() {
         });
 
     app
-        .use(auth({name: config.api.user, pass: config.api.password}))
         .use(bodyparser({enableTypes: ['json', 'form', 'text']}))
-        .use(router.routes())
-        .use(router.allowedMethods());
+        .use(openRouter.routes())
+        .use(openRouter.allowedMethods())
+        .use(auth({name: config.api.user, pass: config.api.password}))
+        .use(securedRouter.routes())
+        .use(securedRouter.allowedMethods());
 
     app.listen(config.port);
 }

@@ -6,6 +6,14 @@ local base64 = require "base64"
 local baseUrl = settings.url
 local authString = "Basic " .. base64.enc(settings.user .. ":" .. settings.passwd)
 
+local logFile = io.open("log.txt", "w")
+
+function log(str)
+    print(str)
+    io.output(logFile)
+    io.write(str, "\n")
+end
+
 function fetchPlaylist(playlist)
     if lfs.attributes(playlist.name) == nil then
         lfs.mkdir(playlist.name)
@@ -18,7 +26,7 @@ function fetchPlaylist(playlist)
 
     for file in lfs.dir(playlist.name) do
         if not tracks[file] then
-            print("Deleting old track " .. file)
+            log("Deleting old track " .. file)
             fa.remove(playlist.name .. "/" .. file)
         end
     end
@@ -37,15 +45,14 @@ function fetchPlaylist(playlist)
 
     for _, track in pairs(playlist.tracks) do
         if lfs.attributes(playlist.name .. "/" .. track.file_name) == nil then
-            print("Getting new track " .. track.file_name)
+            log("Getting new track " .. track.file_name)
+            local url = baseUrl .. "/playlist/" .. urlutil.encode(playlist.name) .. "/track/" .. urlutil.encode(track.file_name)
             local res = fa.HTTPGetFile {
-                uri = baseUrl .. "/playlist/" .. urlutil.encode(playlist.name) .. "/track/" .. urlutil.encode(track.file_name),
-                filepath = playlist.name .. "/" .. track.file_name,
-                user = settings.user,
-                pass = settings.passwd
+                uri = url,
+                filepath = playlist.name .. "/" .. track.file_name
             }
             if res == nil then
-                print("Error getting track " .. track.file_name)
+                log("Error getting track " .. track.file_name .. "(" .. url .. ")")
             else
                 writeTrack(track)
             end
@@ -71,7 +78,7 @@ function update()
             playlists = cjson.decode(body)
             break
         else
-            print(baseUrl .. " is not available. Waiting...")
+            log(baseUrl .. " is not available. Waiting...")
             sleep(1000)
         end
     end
@@ -89,7 +96,7 @@ function update()
         }
         table.insert(processing, playlist.name);
         n_processing = n_processing + 1
-        print("Updating playlist " .. playlist.name)
+        log("Updating playlist " .. playlist.name)
     end
 
     while n_processing ~= 0 do
@@ -103,9 +110,9 @@ function update()
             }
             local resp = cjson.decode(body)
             if resp.status == "done" then
-                print("Playlist " .. playlist .. " is ready for updating")
+                log("Playlist " .. playlist .. " is ready for updating")
                 fetchPlaylist(resp.playlist)
-                print("Updated playlist " .. playlist)
+                log("Updated playlist " .. playlist)
             else
                 n_processing = n_processing + 1
                 table.insert(newprocessing, playlist)
@@ -131,7 +138,7 @@ end
 
 function main()
     if lfs.attributes("DONT_UPDATE") == nil then
-        print("Starting update!")
+        log("Starting update!")
 
         fa.request("http://127.0.0.1/upload.cgi?WRITEPROTECT=ON")
 
@@ -142,7 +149,7 @@ function main()
         io.close(file)
         sendMessage("Done updating!")
     else
-        print("No update will be made, because DONT_UPDATE was present!")
+        log("No update will be made, because DONT_UPDATE was present!")
 
         fa.request("http://127.0.0.1/upload.cgi?WRITEPROTECT=OFF")
 
@@ -152,12 +159,14 @@ end
 
 -- wait for wifi to connect
 while string.sub(fa.ReadStatusReg(), 13, 13) ~= "a" do
-    print("Wifi not connected. Waiting...")
+    log("Wifi not connected. Waiting...")
     sleep(1000)
 end
 
 local status, err = pcall(main)
 if status == false then
-    print(err)
+    log(err)
     sendMessage("An error occured!\n" .. err)
 end
+
+io.close(logFile)
