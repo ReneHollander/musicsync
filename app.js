@@ -66,6 +66,10 @@ async function main() {
 
     const securedRouter = new Router();
     const openRouter = new Router();
+    openRouter
+        .get('/', (ctx) => {
+            ctx.body = "MusicSync server"
+        });
 
     securedRouter
         .get('/playlist/', (ctx) => {
@@ -107,11 +111,7 @@ async function main() {
 
             ctx.type = path.extname(track.audio_path);
             ctx.body = fs.createReadStream(track.audio_path);
-        });
-
-    openRouter
-        .param('playlist_name', playlistName)
-        .param('track_name', trackName)
+        })
         .get('/playlist/:playlist_name/track/:track_name/', async (ctx) => {
             let playlist = ctx.playlist;
             let track = ctx.track;

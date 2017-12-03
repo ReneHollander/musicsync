@@ -47,10 +47,7 @@ function fetchPlaylist(playlist)
         if lfs.attributes(playlist.name .. "/" .. track.file_name) == nil then
             log("Getting new track " .. track.file_name)
             local url = baseUrl .. "/playlist/" .. urlutil.encode(playlist.name) .. "/track/" .. urlutil.encode(track.file_name)
-            local res = fa.HTTPGetFile {
-                uri = url,
-                filepath = playlist.name .. "/" .. track.file_name
-            }
+            local res = fa.HTTPGetFile(url, playlist.name .. "/" .. track.file_name, settings.user, settings.passwd)
             if res == nil then
                 log("Error getting track " .. track.file_name .. "(" .. url .. ")")
             else
