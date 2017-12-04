@@ -2,6 +2,7 @@ local cjson = require "cjson"
 local urlutil = require "urlutil"
 local settings = require "settings"
 local base64 = require "base64"
+local inspect = require "inspect"
 
 local baseUrl = settings.url
 local authString = "Basic " .. base64.enc(settings.user .. ":" .. settings.passwd)
@@ -9,9 +10,10 @@ local authString = "Basic " .. base64.enc(settings.user .. ":" .. settings.passw
 local logFile = io.open("log.txt", "w")
 
 function log(str)
-    print(str)
+    local res = inspect(str)
+    print(res)
     io.output(logFile)
-    io.write(str, "\n")
+    io.write(res, "\n")
 end
 
 function fetchPlaylist(playlist)
@@ -100,19 +102,30 @@ function update()
         n_processing = 0
         local newprocessing = {}
         for _, playlist in pairs(processing) do
-            local body, _, _ = fa.request {
-                url = baseUrl .. "/playlist/" .. urlutil.encode(playlist) .. "/status",
-                method = "GET",
-                headers = { ["Authorization"] = authString }
-            }
-            local resp = cjson.decode(body)
-            if resp.status == "done" then
-                log("Playlist " .. playlist .. " is ready for updating")
-                fetchPlaylist(resp.playlist)
-                log("Updated playlist " .. playlist)
+            local url = baseUrl .. "/playlist/" .. urlutil.encode(playlist) .. "/status"
+            local res = fa.HTTPGetFile(url, "playlist.json", settings.user, settings.passwd)
+            if res == nil then
+                log("Error getting playlist " .. playlist .. "(" .. url .. ")")
             else
-                n_processing = n_processing + 1
-                table.insert(newprocessing, playlist)
+                local f = io.open("playlist.json", "rb")
+                local content = f:read("*all")
+                f:close()
+                fa.remove("playlist.json")
+                local decode_status, res = pcall(cjson.decode, content)
+                if decode_status == false then
+                    log("Error parsing json for play list " .. playlist .. ": " .. res)
+                    log(content)
+                else
+                    if res.status == "done" then
+                        log("Playlist " .. playlist .. " is ready for updating")
+                        fetchPlaylist(res.playlist)
+                        log("Updated playlist " .. playlist)
+                    else
+                        log("Playlist " .. playlist .. " still processing...")
+                        n_processing = n_processing + 1
+                        table.insert(newprocessing, playlist)
+                    end
+                end
             end
         end
         processing = newprocessing

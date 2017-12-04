@@ -8,6 +8,7 @@ const logger = require('koa-logger');
 const bodyparser = require('koa-bodyparser');
 const path = require('path');
 const fs = require('fs-extra');
+const clone = require('clone');
 const download = require('./lib/download');
 
 const app = new Koa();
@@ -100,7 +101,18 @@ async function main() {
 
             let resp = {name: playlist.name, status: playlist.status};
             if (playlist.status === 'done') {
-                resp.playlist = playlist.playlist;
+                let pl = {
+                    name: playlist.name,
+                    tracks: []
+                };
+                for (let t of playlist.playlist.tracks) {
+                    pl.tracks.push({
+                        title: t.title,
+                        duration: t.duration,
+                        file_name: t.file_name
+                    });
+                }
+                resp.playlist = pl;
             }
             ctx.body = resp;
         })
