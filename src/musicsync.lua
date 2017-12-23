@@ -52,6 +52,7 @@ function fetchPlaylist(playlist)
             local res = fa.HTTPGetFile(url, playlist.name .. "/" .. track.file_name, settings.user, settings.passwd)
             if res == nil then
                 log("Error getting track " .. track.file_name .. "(" .. url .. ")")
+				sendMessage("Error getting track " .. track.file_name)
             else
                 writeTrack(track)
             end
@@ -106,6 +107,7 @@ function update()
             local res = fa.HTTPGetFile(url, "playlist.json", settings.user, settings.passwd)
             if res == nil then
                 log("Error getting playlist " .. playlist .. "(" .. url .. ")")
+				sendMessage("Error getting playlist: " .. playlist)
             else
                 local f = io.open("playlist.json", "rb")
                 local content = f:read("*all")
@@ -115,6 +117,7 @@ function update()
                 if decode_status == false then
                     log("Error parsing json for play list " .. playlist .. ": " .. res)
                     log(content)
+					sendMessage("Error parsing json for play list " .. playlist)
                 else
                     if res.status == "done" then
                         log("Playlist " .. playlist .. " is ready for updating")
@@ -160,6 +163,7 @@ function main()
         sendMessage("Done updating!")
     else
         log("No update will be made, because DONT_UPDATE was present!")
+		sendMessage("Finished Update!")
 
         fa.request("http://127.0.0.1/upload.cgi?WRITEPROTECT=OFF")
 
