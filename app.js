@@ -109,7 +109,8 @@ async function main() {
                     pl.tracks.push({
                         title: t.title,
                         duration: t.duration,
-                        file_name: t.file_name
+                        file_name: t.file_name,
+                        size: t.size
                     });
                 }
                 resp.playlist = pl;

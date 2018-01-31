@@ -7,13 +7,13 @@ local inspect = require "inspect"
 local baseUrl = settings.url
 local authString = "Basic " .. base64.enc(settings.user .. ":" .. settings.passwd)
 
-local logFile = io.open("log.txt", "w")
+local logFile = io.open("log.txt", "a")
+logFile:io.write("Started Flashair", "\n")
 
 function log(str)
     local res = inspect(str)
     print(res)
-    io.output(logFile)
-    io.write(res, "\n")
+    logFile:io.write(res, "\n")
 end
 
 function fetchPlaylist(playlist)
@@ -34,33 +34,45 @@ function fetchPlaylist(playlist)
     end
 
     local playlistFile = io.open(playlist.name .. ".m3u", "w")
-    io.output(playlistFile)
 
-    io.write("#EXTM3U\n")
-    io.write("\n")
+    playlistFile:io.write("#EXTM3U\n")
+    playlistFile:io.write("\n")
 
     local function writeTrack(track)
-        io.write("#EXTINF:" .. track.duration .. ", " .. track.title .. "\n")
-        io.write(playlist.name .. "/" .. track.file_name .. "\n")
-        io.write("\n")
+        playlistFile:io.write("#EXTINF:" .. track.duration .. ", " .. track.title .. "\n")
+        playlistFile:io.write(playlist.name .. "/" .. track.file_name .. "\n")
+        playlistFile:io.write("\n")
     end
 
     for _, track in pairs(playlist.tracks) do
-        if lfs.attributes(playlist.name .. "/" .. track.file_name) == nil then
-            log("Getting new track " .. track.file_name)
-            local url = baseUrl .. "/playlist/" .. urlutil.encode(playlist.name) .. "/track/" .. urlutil.encode(track.file_name)
-            local res = fa.HTTPGetFile(url, playlist.name .. "/" .. track.file_name, settings.user, settings.passwd)
-            if res == nil then
-                log("Error getting track " .. track.file_name .. "(" .. url .. ")")
-                sendMessage("Error getting track " .. track.file_name)
+        local status = 0
+        for i = 1, 3 do
+            local attr = lfs.attributes(playlist.name .. "/" .. track.file_name)
+            if attr == nil or attr.size ~= track.size then
+                log("Getting new track " .. track.file_name)
+                local url = baseUrl .. "/playlist/" .. urlutil.encode(playlist.name) .. "/track/" .. urlutil.encode(track.file_name)
+                local res = fa.HTTPGetFile(url, playlist.name .. "/" .. track.file_name, settings.user, settings.passwd)
+                if res ~= nil then
+                    status = 1
+                    break
+                end
             else
-                writeTrack(track)
+                status = 2
+                break
+            end
+        end
+
+        if status > 0 then
+            writeTrack(track)
+            if status == 2 then
+                log("Got track " .. track.file_name .. "(" .. url .. ")")
+                sendMessage("Got track " .. track.file_name)
             end
         else
-            writeTrack(track)
+            log("Error getting track " .. track.file_name .. "(" .. url .. ")")
+            sendMessage("Error getting track " .. track.file_name)
         end
     end
-
     io.close(playlistFile)
 end
 
