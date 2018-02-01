@@ -10,6 +10,7 @@ const path = require('path');
 const fs = require('fs-extra');
 const clone = require('clone');
 const download = require('./lib/download');
+const schedule = require('node-schedule');
 
 const app = new Koa();
 app.use(logger());
@@ -41,6 +42,25 @@ async function main() {
         };
         playlists[pl.name] = pl;
     }
+
+    function updatePlaylist(playlist) {
+        if (playlist.status !== 'processing') {
+            delete playlist.playlist;
+            playlist.status = 'processing';
+            download.fetchPlaylist(data_path, playlist.name, playlist.url)
+                .then(res => {
+                    playlist.playlist = res;
+                    playlist.status = 'done';
+                }).catch(console.log);
+        }
+    }
+
+    schedule.scheduleJob('0 3 * * *', () => {
+        for (let playlist in playlists) {
+            console.log('Scheduled update for playlist ' + playlist);
+            updatePlaylist(playlists[playlist]);
+        }
+    });
 
     function playlistName(playlist_name, ctx, next) {
         let playlist = playlists[playlist_name];
@@ -84,16 +104,7 @@ async function main() {
         .param('playlist_name', playlistName)
         .post('/playlist/:playlist_name/update', (ctx) => {
             let playlist = ctx.playlist;
-
-            if (playlist.status !== 'processing') {
-                delete playlist.playlist;
-                playlist.status = 'processing';
-                download.fetchPlaylist(data_path, playlist.name, playlist.url)
-                    .then(res => {
-                        playlist.playlist = res;
-                        playlist.status = 'done';
-                    }).catch(console.log);
-            }
+            updatePlaylist(playlist);
             ctx.body = {name: playlist.name, status: playlist.status};
         })
         .get('/playlist/:playlist_name/status', (ctx) => {
