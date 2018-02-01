@@ -8,13 +8,16 @@ local baseUrl = settings.url
 local authString = "Basic " .. base64.enc(settings.user .. ":" .. settings.passwd)
 
 local logFile = io.open("log.txt", "a")
-logFile:io.write("Started Flashair", "\n")
 
 function log(str)
-    local res = inspect(str)
+    local res = inspect(inspect(str))
     print(res)
-    logFile:io.write(res, "\n")
+    logFile:write(res, "\n")
+    res = nil
+    collectgarbage()
 end
+
+log("Starting")
 
 function fetchPlaylist(playlist)
     if lfs.attributes(playlist.name) == nil then
@@ -35,29 +38,31 @@ function fetchPlaylist(playlist)
 
     local playlistFile = io.open(playlist.name .. ".m3u", "w")
 
-    playlistFile:io.write("#EXTM3U\n")
-    playlistFile:io.write("\n")
+    playlistFile:write("#EXTM3U\n")
+    playlistFile:write("\n")
 
     local function writeTrack(track)
-        playlistFile:io.write("#EXTINF:" .. track.duration .. ", " .. track.title .. "\n")
-        playlistFile:io.write(playlist.name .. "/" .. track.file_name .. "\n")
-        playlistFile:io.write("\n")
+        playlistFile:write("#EXTINF:" .. track.duration .. ", " .. track.title .. "\n")
+        playlistFile:write(playlist.name .. "/" .. track.file_name .. "\n")
+        playlistFile:write("\n")
     end
 
     for _, track in pairs(playlist.tracks) do
         local status = 0
+        local url = baseUrl .. "/playlist/" .. urlutil.encode(playlist.name) .. "/track/" .. urlutil.encode(track.file_name)
         for i = 1, 3 do
             local attr = lfs.attributes(playlist.name .. "/" .. track.file_name)
             if attr == nil or attr.size ~= track.size then
+                fa.remove(playlist.name .. "/" .. track.file_name)
                 log("Getting new track " .. track.file_name)
-                local url = baseUrl .. "/playlist/" .. urlutil.encode(playlist.name) .. "/track/" .. urlutil.encode(track.file_name)
                 local res = fa.HTTPGetFile(url, playlist.name .. "/" .. track.file_name, settings.user, settings.passwd)
-                if res ~= nil then
-                    status = 1
+                local attr = lfs.attributes(playlist.name .. "/" .. track.file_name)
+                if res ~= nil and attr ~= nil and attr.size == track.size then
+                    status = 2
                     break
                 end
             else
-                status = 2
+                status = 1
                 break
             end
         end
@@ -73,7 +78,7 @@ function fetchPlaylist(playlist)
             sendMessage("Error getting track " .. track.file_name)
         end
     end
-    io.close(playlistFile)
+    playlistFile:close()
 end
 
 function update()
@@ -106,7 +111,7 @@ function update()
             method = "POST",
             headers = { ["Authorization"] = authString }
         }
-        table.insert(processing, playlist.name);
+        table.insert(processing, playlist.name)
         n_processing = n_processing + 1
         log("Updating playlist " .. playlist.name)
     end
@@ -121,6 +126,7 @@ function update()
                 log("Error getting playlist " .. playlist .. "(" .. url .. ")")
                 sendMessage("Error getting playlist: " .. playlist)
             else
+                collectgarbage()
                 local f = io.open("playlist.json", "rb")
                 local content = f:read("*all")
                 f:close()
@@ -131,6 +137,8 @@ function update()
                     log(content)
                     sendMessage("Error parsing json for play list " .. playlist)
                 else
+                    content = nil
+                    collectgarbage()
                     if res.status == "done" then
                         log("Playlist " .. playlist .. " is ready for updating")
                         fetchPlaylist(res.playlist)
@@ -169,9 +177,10 @@ function main()
 
         update()
 
-        local file = io.open("DONT_UPDATE", "w")
-        io.output(file)
-        io.close(file)
+        local dont_update = io.open("DONT_UPDATE", "w")
+        dont_update:write("DONT_UPDATE")
+        dont_update:close()
+        log("Done updating!")
         sendMessage("Done updating!")
     else
         log("No update will be made, because DONT_UPDATE was present!")
@@ -183,7 +192,7 @@ function main()
     end
 end
 
-fa.control("fioset", 1)
+--fa.control("fioset", 1)
 
 -- wait for wifi to connect
 while string.sub(fa.ReadStatusReg(), 13, 13) ~= "a" do
@@ -195,8 +204,10 @@ local status, err = pcall(main)
 if status == false then
     log(err)
     sendMessage("An error occured!\n" .. err)
+else
+    log("Finished")
 end
 
-io.close(logFile)
+logFile:close()
 
-fa.control("fioset", 0)
+--fa.control("fioset", 0)
