@@ -192,7 +192,7 @@ function main()
     end
 end
 
---fa.control("fioset", 1)
+fa.control("fioset", 1)
 
 -- wait for wifi to connect
 while string.sub(fa.ReadStatusReg(), 13, 13) ~= "a" do
@@ -210,4 +210,4 @@ end
 
 logFile:close()
 
---fa.control("fioset", 0)
+fa.control("fioset", 0)
