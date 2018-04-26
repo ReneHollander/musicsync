@@ -55,7 +55,7 @@ async function main() {
         }
     }
 
-    schedule.scheduleJob('0 3 * * *', () => {
+    schedule.scheduleJob('0 * * * *', () => {
         for (let playlist in playlists) {
             console.log('Scheduled update for playlist ' + playlist);
             updatePlaylist(playlists[playlist]);
