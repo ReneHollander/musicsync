@@ -36,12 +36,23 @@ function fetchPlaylist(playlist)
         end
     end
 
-    local playlistFile = io.open(playlist.name .. ".m3u", "w")
+    local playlistFile = nil
+    local fileCount = 0
+    local trackCount = 0
 
-    playlistFile:write("#EXTM3U\n")
-    playlistFile:write("\n")
+    local function checkNextFile()
+        if playlistFile == nil or trackCount >= 100 then
+            trackCount = 0
+            fileCount = fileCount + 1
+            playlistFile = io.open(playlist.name .. " " .. fileCount .. ".m3u", "w")
+            playlistFile:write("#EXTM3U\n")
+            playlistFile:write("\n")
+        end
+    end
 
     local function writeTrack(track)
+        checkNextFile()
+        trackCount = trackCount + 1
         playlistFile:write("#EXTINF:" .. track.duration .. ", " .. track.title .. "\n")
         playlistFile:write(playlist.name .. "/" .. track.file_name .. "\n")
         playlistFile:write("\n")
