@@ -101,12 +101,11 @@ function update()
             method = "GET",
             headers = { ["Authorization"] = authString }
         }
-
-        if status ~= -1 then
+        if status > 0 then
             playlists = cjson.decode(body)
             break
         else
-            log(baseUrl .. " is not available. Waiting...")
+            log(baseUrl .. " is not available. body=" .. body .. ", status=" .. status .. ". Waiting...")
             sleep(1000)
         end
     end
@@ -206,10 +205,13 @@ end
 fa.control("fioset", 1)
 
 -- wait for wifi to connect
-while string.sub(fa.ReadStatusReg(), 13, 13) ~= "a" do
+while fa.WlanLink() ~= 1 do
     log("Wifi not connected. Waiting...")
     sleep(1000)
 end
+
+ip, mask, gw = fa.ip()
+log("connected with ip=" .. ip .. ", mask=" .. mask .. ", gw=" .. gw)
 
 local status, err = pcall(main)
 if status == false then
